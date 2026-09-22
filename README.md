@@ -1,0 +1,62 @@
+# 运单计费与账单核对台
+
+面向物流结算岗位的运单计费与账单核对工具。运单录进来，按分区与重量口径算出运费与附加费，按月出账，出账之后要能核对账单总额与逐单明细是否对得上。
+
+## 怎么跑
+
+```
+npm install
+npm start
+```
+
+启动后打开 http://localhost:5150 。数据存在 `data/db.json`，页面上的改动会直接写回这个文件。
+
+## 页面能做什么
+
+- 概览：分区、客户、运单、账单的数量与金额合计，运单状态分布，已有账期，未归属城市的运单数
+- 运单：登记与维护运单（客户、寄件城市、收件城市、实际重量、体积、件数、保价金额、附加服务、状态、创建时刻），支持按关键词、客户、状态筛选，可以只看收件城市还没归属分区的运单
+- 运单计费：对单条运单算一次费用，结果会记在这条运单上，页面上直接能看到上次算出来的数
+- 分区：维护分区编码、名称、覆盖城市与城市别名、首重与续重价格、偏远附加、启用状态
+- 客户：维护客户编码、名称、结算方式（月结／现结）、折扣、账期日
+- 账单：按账期与客户出账，查看账单总额与逐条明细，可以把账单作废
+
+## 计费口径
+
+1. 计费重量 = max(实际重量, 体积重量)；体积重量 = 体积(m³) × 1000000 ÷ 体积系数（默认 6000），结果向上取到 0.5kg
+2. 首重以内收首重价；超出首重的部分按续重单位向上进位，每个单位收续重价
+3. 运费不低于最低收费（默认 8 元）
+4. 附加费 = 偏远附加（按分区）+ 超规附加（计费重量超过 30kg 或件数达到 3 件，20 元）+ 保价费（保价金额 × 2%）
+5. 月结客户按折扣作用于运费与附加费合计，现结客户不打折；金额以元为单位，页面保留两位小数
+6. 账期按运单创建时刻所在的月份归集；运单进账单之后会被锁定，不能再直接删改
+
+## 目录
+
+```
+server/index.js     服务入口
+server/api.js       接口路由与错误处理
+server/store.js     数据读写
+server/pricing.js   计费口径
+server/zones.js     分区与城市归属
+server/customers.js 客户
+server/waybills.js  运单与单条计费
+server/bills.js     出账与账单
+public/             页面
+data/db.json        数据
+```
+
+## 接口一览
+
+```
+GET    /api/health
+GET    /api/summary
+GET    /api/settings             PATCH /api/settings
+GET    /api/zones                POST /api/zones      PATCH|DELETE /api/zones/:id
+GET    /api/customers            POST /api/customers  PATCH|DELETE /api/customers/:id
+GET    /api/waybills             POST /api/waybills   PATCH|DELETE /api/waybills/:id
+POST   /api/waybills/:id/quote
+GET    /api/bills                GET /api/bills/:id
+POST   /api/bills/generate       POST /api/bills/:id/void
+GET    /api/periods
+```
+
+出账入参：`{ "period": "2026-09", "customerId": "cust-0001" }`

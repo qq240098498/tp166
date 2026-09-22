@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>运单计费与账单核对台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">计</span>
+    <span class="brand-text">
+      <strong>运单计费与账单核对台</strong>
+      <small>物流结算 · 运单 / 分区 / 客户 / 账单</small>
+    </span>
+  </div>
+
+  <nav class="tabs" id="tabs" aria-label="主标签">
+    <button type="button" class="tab" data-action="tab" data-tab="overview">概览</button>
+    <button type="button" class="tab" data-action="tab" data-tab="waybills">运单</button>
+    <button type="button" class="tab" data-action="tab" data-tab="zones">分区</button>
+    <button type="button" class="tab" data-action="tab" data-tab="customers">客户</button>
+    <button type="button" class="tab" data-action="tab" data-tab="bills">账单</button>
+  </nav>
+
+  <div class="topbar-side">
+    <span class="stamp" id="dataStamp">数据更新时间：—</span>
+  </div>
+</header>
+
+<div class="notice-wrap">
+  <div class="notice" id="notice" role="status" hidden>
+    <span class="notice-text" id="noticeText"></span>
+    <button type="button" class="notice-close" data-action="notice-close">关闭</button>
+  </div>
+</div>
+
+<main class="layout">
+  <aside class="col col-left" aria-label="筛选与统计"><div class="pane" id="leftPane"></div></aside>
+  <section class="col col-mid" aria-label="清单"><div class="pane" id="midPane"></div></section>
+  <aside class="col col-right" aria-label="详情与表单"><div class="pane" id="rightPane"></div></aside>
+</main>
+
+<footer class="statusbar">
+  <span class="status-dot" id="statusDot"></span>
+  <span class="status-msg" id="statusMessage">页面已就绪</span>
+  <span class="status-count" id="statusCount">清单 0 条</span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

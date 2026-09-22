@@ -1,0 +1,773 @@
+{
+  "meta": {
+    "name": "运单计费与账单核对台",
+    "currency": "CNY",
+    "updatedAt": "2026-09-22T12:48:30.802Z"
+  },
+  "settings": {
+    "volumetricDivisor": 6000,
+    "minChargeYuan": 8,
+    "oversizeWeightKg": 30,
+    "oversizePieces": 3,
+    "oversizeFeeYuan": 20,
+    "insurancePermille": 20
+  },
+  "zones": [
+    {
+      "id": "zone-0001",
+      "code": "Z1",
+      "name": "同城",
+      "cities": [
+        "江城",
+        "海陵"
+      ],
+      "aliases": {
+        "江城城区": "江城",
+        "海陵新区": "海陵"
+      },
+      "firstWeightKg": 1,
+      "firstPriceYuan": 8,
+      "addUnitKg": 0.5,
+      "addPriceYuan": 1.5,
+      "remoteFeeYuan": 0,
+      "status": "启用"
+    },
+    {
+      "id": "zone-0002",
+      "code": "Z2",
+      "name": "省内",
+      "cities": [
+        "云岭",
+        "青峰",
+        "白鹿"
+      ],
+      "aliases": {
+        "云岭高新区": "云岭"
+      },
+      "firstWeightKg": 1,
+      "firstPriceYuan": 10,
+      "addUnitKg": 0.5,
+      "addPriceYuan": 2,
+      "remoteFeeYuan": 0,
+      "status": "启用"
+    },
+    {
+      "id": "zone-0003",
+      "code": "Z3",
+      "name": "跨省",
+      "cities": [
+        "平原",
+        "沙洲",
+        "洛水"
+      ],
+      "aliases": {},
+      "firstWeightKg": 1,
+      "firstPriceYuan": 12,
+      "addUnitKg": 0.5,
+      "addPriceYuan": 3,
+      "remoteFeeYuan": 2,
+      "status": "启用"
+    },
+    {
+      "id": "zone-0004",
+      "code": "Z4",
+      "name": "偏远",
+      "cities": [
+        "远山",
+        "高岭"
+      ],
+      "aliases": {},
+      "firstWeightKg": 1,
+      "firstPriceYuan": 15,
+      "addUnitKg": 0.5,
+      "addPriceYuan": 4,
+      "remoteFeeYuan": 5,
+      "status": "启用"
+    }
+  ],
+  "customers": [
+    {
+      "id": "cust-0001",
+      "code": "C01",
+      "name": "江城云仓",
+      "settle": "月结",
+      "discountPermille": 950,
+      "periodDay": 5,
+      "status": "启用"
+    },
+    {
+      "id": "cust-0002",
+      "code": "C02",
+      "name": "海陵百货",
+      "settle": "月结",
+      "discountPermille": 980,
+      "periodDay": 5,
+      "status": "启用"
+    },
+    {
+      "id": "cust-0003",
+      "code": "C03",
+      "name": "云岭农场",
+      "settle": "现结",
+      "discountPermille": 1000,
+      "periodDay": 1,
+      "status": "启用"
+    },
+    {
+      "id": "cust-0004",
+      "code": "C04",
+      "name": "远山矿业",
+      "settle": "月结",
+      "discountPermille": 900,
+      "periodDay": 10,
+      "status": "启用"
+    }
+  ],
+  "waybills": [
+    {
+      "id": "wb-0001",
+      "code": "YD20260803001",
+      "customerId": "cust-0001",
+      "fromCity": "江城",
+      "toCity": "海陵",
+      "weightKg": 3.2,
+      "volumeM3": 0.012,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-03T10:20:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0002",
+      "code": "YD20260805002",
+      "customerId": "cust-0001",
+      "fromCity": "海陵",
+      "toCity": "云岭高新区",
+      "weightKg": 2.4,
+      "volumeM3": 0.008,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-05T09:15:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0003",
+      "code": "YD20260807003",
+      "customerId": "cust-0001",
+      "fromCity": "海陵",
+      "toCity": "江城",
+      "weightKg": 18.4,
+      "volumeM3": 0.03,
+      "pieces": 2,
+      "insuredAmountYuan": 0,
+      "services": [
+        "签收"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-08-07T14:40:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0004",
+      "code": "YD20260811004",
+      "customerId": "cust-0001",
+      "fromCity": "江城",
+      "toCity": "海陵",
+      "weightKg": 1.2,
+      "volumeM3": 0.004,
+      "pieces": 1,
+      "insuredAmountYuan": 1234.5,
+      "services": [
+        "保价"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-08-11T11:05:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0005",
+      "code": "YD20260812005",
+      "customerId": "cust-0001",
+      "fromCity": "江城",
+      "toCity": "海陵",
+      "weightKg": 1.2,
+      "volumeM3": 0.004,
+      "pieces": 1,
+      "insuredAmountYuan": 1234.5,
+      "services": [
+        "保价"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-08-12T15:30:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0006",
+      "code": "YD20260813006",
+      "customerId": "cust-0001",
+      "fromCity": "江城",
+      "toCity": "海陵",
+      "weightKg": 1.2,
+      "volumeM3": 0.004,
+      "pieces": 1,
+      "insuredAmountYuan": 1234.5,
+      "services": [
+        "保价"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-08-13T16:45:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0007",
+      "code": "YD20260820007",
+      "customerId": "cust-0001",
+      "fromCity": "江城",
+      "toCity": "平原",
+      "weightKg": 32.4,
+      "volumeM3": 0.05,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-20T08:50:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0008",
+      "code": "YD20260901008",
+      "customerId": "cust-0001",
+      "fromCity": "海陵",
+      "toCity": "海陵",
+      "weightKg": 5.5,
+      "volumeM3": 0.01,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-09-01T02:30:00+08:00",
+      "billId": "bill-0004",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0009",
+      "code": "YD20260705009",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "江城",
+      "weightKg": 2.1,
+      "volumeM3": 0.006,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-07-05T09:00:00+08:00",
+      "billId": "bill-0001",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0010",
+      "code": "YD20260712010",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "云岭",
+      "weightKg": 3.4,
+      "volumeM3": 0.009,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-07-12T10:30:00+08:00",
+      "billId": "bill-0001",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0011",
+      "code": "YD20260720011",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "平原",
+      "weightKg": 8.2,
+      "volumeM3": 0.02,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-07-20T13:20:00+08:00",
+      "billId": "bill-0001",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0012",
+      "code": "YD20260728012",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "海陵",
+      "weightKg": 1.6,
+      "volumeM3": 0.005,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-07-28T17:10:00+08:00",
+      "billId": "bill-0001",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0013",
+      "code": "YD20260804013",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "江城",
+      "weightKg": 4.8,
+      "volumeM3": 0.014,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-04T09:40:00+08:00",
+      "billId": "bill-0003",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0014",
+      "code": "YD20260809014",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "云岭",
+      "weightKg": 6.2,
+      "volumeM3": 0.011,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-09T11:25:00+08:00",
+      "billId": "bill-0003",
+      "quoteCacheYuan": 21.56,
+      "quoteCachedAt": "2026-09-22T12:48:30.711Z"
+    },
+    {
+      "id": "wb-0015",
+      "code": "YD20260815015",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "沙洲",
+      "weightKg": 9.6,
+      "volumeM3": 0.024,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [
+        "上门"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-08-15T15:00:00+08:00",
+      "billId": "bill-0003",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0016",
+      "code": "YD20260822016",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "海陵",
+      "weightKg": 2.8,
+      "volumeM3": 0.007,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-22T16:20:00+08:00",
+      "billId": "bill-0003",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0017",
+      "code": "YD20260826017",
+      "customerId": "cust-0002",
+      "fromCity": "海陵",
+      "toCity": "白鹿",
+      "weightKg": 14.2,
+      "volumeM3": 0.035,
+      "pieces": 2,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-08-26T10:10:00+08:00",
+      "billId": "bill-0003",
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0018",
+      "code": "YD20260902018",
+      "customerId": "cust-0003",
+      "fromCity": "云岭",
+      "toCity": "云岭",
+      "weightKg": 1.4,
+      "volumeM3": 0.004,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "已签收",
+      "createdAt": "2026-09-02T09:30:00+08:00",
+      "billId": null,
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0019",
+      "code": "YD20260905019",
+      "customerId": "cust-0003",
+      "fromCity": "云岭",
+      "toCity": "青峰",
+      "weightKg": 2.6,
+      "volumeM3": 0.008,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "在途",
+      "createdAt": "2026-09-05T14:15:00+08:00",
+      "billId": null,
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0020",
+      "code": "YD20260908020",
+      "customerId": "cust-0003",
+      "fromCity": "云岭",
+      "toCity": "江城",
+      "weightKg": 3.8,
+      "volumeM3": 0.011,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "待发",
+      "createdAt": "2026-09-08T08:40:00+08:00",
+      "billId": null,
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0021",
+      "code": "YD20260903021",
+      "customerId": "cust-0004",
+      "fromCity": "远山",
+      "toCity": "远山",
+      "weightKg": 18.5,
+      "volumeM3": 0.048,
+      "pieces": 3,
+      "insuredAmountYuan": 5000,
+      "services": [
+        "保价",
+        "上门"
+      ],
+      "status": "已签收",
+      "createdAt": "2026-09-03T11:50:00+08:00",
+      "billId": null,
+      "quoteCacheYuan": null
+    },
+    {
+      "id": "wb-0022",
+      "code": "YD20260910022",
+      "customerId": "cust-0004",
+      "fromCity": "远山",
+      "toCity": "高岭",
+      "weightKg": 7.4,
+      "volumeM3": 0.019,
+      "pieces": 1,
+      "insuredAmountYuan": 0,
+      "services": [],
+      "status": "待发",
+      "createdAt": "2026-09-10T09:05:00+08:00",
+      "billId": null,
+      "quoteCacheYuan": null
+    }
+  ],
+  "bills": [
+    {
+      "id": "bill-0001",
+      "code": "ZD202607-C0201",
+      "period": "2026-07",
+      "customerId": "cust-0002",
+      "status": "已作废",
+      "createdAt": "2026-09-22T12:48:30.735Z",
+      "waybillIds": [
+        "wb-0009",
+        "wb-0010",
+        "wb-0011",
+        "wb-0012"
+      ],
+      "lines": [
+        {
+          "waybillId": "wb-0009",
+          "code": "YD20260705009",
+          "toCity": "江城",
+          "zoneName": "同城",
+          "billableKg": 2.5,
+          "amountYuan": 8.09,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0010",
+          "code": "YD20260712010",
+          "toCity": "云岭",
+          "zoneName": "同城",
+          "billableKg": 3.5,
+          "amountYuan": 11.33,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0011",
+          "code": "YD20260720011",
+          "toCity": "平原",
+          "zoneName": "同城",
+          "billableKg": 8.5,
+          "amountYuan": 27.51,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0012",
+          "code": "YD20260728012",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 2,
+          "amountYuan": 6.47,
+          "fromCache": false
+        }
+      ],
+      "amountYuan": 53.41,
+      "discountPermille": 980,
+      "voidedAt": "2026-09-22T12:48:30.747Z"
+    },
+    {
+      "id": "bill-0002",
+      "code": "ZD202608-C0201",
+      "period": "2026-08",
+      "customerId": "cust-0002",
+      "status": "已出账",
+      "createdAt": "2026-09-22T12:48:30.759Z",
+      "waybillIds": [
+        "wb-0013",
+        "wb-0014",
+        "wb-0015",
+        "wb-0016",
+        "wb-0017"
+      ],
+      "lines": [
+        {
+          "waybillId": "wb-0013",
+          "code": "YD20260804013",
+          "toCity": "江城",
+          "zoneName": "同城",
+          "billableKg": 5,
+          "amountYuan": 15.37,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0014",
+          "code": "YD20260809014",
+          "toCity": "云岭",
+          "zoneName": "同城",
+          "billableKg": 4,
+          "amountYuan": 21.56,
+          "fromCache": true
+        },
+        {
+          "waybillId": "wb-0015",
+          "code": "YD20260815015",
+          "toCity": "沙洲",
+          "zoneName": "同城",
+          "billableKg": 10,
+          "amountYuan": 30.74,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0016",
+          "code": "YD20260822016",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 3,
+          "amountYuan": 9.22,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0017",
+          "code": "YD20260826017",
+          "toCity": "白鹿",
+          "zoneName": "同城",
+          "billableKg": 14.5,
+          "amountYuan": 44.58,
+          "fromCache": false
+        }
+      ],
+      "amountYuan": 112.21,
+      "discountPermille": 980
+    },
+    {
+      "id": "bill-0003",
+      "code": "ZD202608-C0202",
+      "period": "2026-08",
+      "customerId": "cust-0002",
+      "status": "已出账",
+      "createdAt": "2026-09-22T12:48:30.769Z",
+      "waybillIds": [
+        "wb-0013",
+        "wb-0014",
+        "wb-0015",
+        "wb-0016",
+        "wb-0017"
+      ],
+      "lines": [
+        {
+          "waybillId": "wb-0013",
+          "code": "YD20260804013",
+          "toCity": "江城",
+          "zoneName": "同城",
+          "billableKg": 5,
+          "amountYuan": 15.37,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0014",
+          "code": "YD20260809014",
+          "toCity": "云岭",
+          "zoneName": "同城",
+          "billableKg": 4,
+          "amountYuan": 21.56,
+          "fromCache": true
+        },
+        {
+          "waybillId": "wb-0015",
+          "code": "YD20260815015",
+          "toCity": "沙洲",
+          "zoneName": "同城",
+          "billableKg": 10,
+          "amountYuan": 30.74,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0016",
+          "code": "YD20260822016",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 3,
+          "amountYuan": 9.22,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0017",
+          "code": "YD20260826017",
+          "toCity": "白鹿",
+          "zoneName": "同城",
+          "billableKg": 14.5,
+          "amountYuan": 44.58,
+          "fromCache": false
+        }
+      ],
+      "amountYuan": 112.21,
+      "discountPermille": 980
+    },
+    {
+      "id": "bill-0004",
+      "code": "ZD202608-C0101",
+      "period": "2026-08",
+      "customerId": "cust-0001",
+      "status": "已出账",
+      "createdAt": "2026-09-22T12:48:30.781Z",
+      "waybillIds": [
+        "wb-0001",
+        "wb-0002",
+        "wb-0003",
+        "wb-0004",
+        "wb-0005",
+        "wb-0006",
+        "wb-0007",
+        "wb-0008"
+      ],
+      "lines": [
+        {
+          "waybillId": "wb-0001",
+          "code": "YD20260803001",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 3.5,
+          "amountYuan": 10.25,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0002",
+          "code": "YD20260805002",
+          "toCity": "云岭高新区",
+          "zoneName": "同城",
+          "billableKg": 2.5,
+          "amountYuan": 7.32,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0003",
+          "code": "YD20260807003",
+          "toCity": "江城",
+          "zoneName": "同城",
+          "billableKg": 13,
+          "amountYuan": 38.05,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0004",
+          "code": "YD20260811004",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 1.5,
+          "amountYuan": 27.85,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0005",
+          "code": "YD20260812005",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 1.5,
+          "amountYuan": 27.85,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0006",
+          "code": "YD20260813006",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 1.5,
+          "amountYuan": 27.85,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0007",
+          "code": "YD20260820007",
+          "toCity": "平原",
+          "zoneName": "同城",
+          "billableKg": 32.5,
+          "amountYuan": 114.14,
+          "fromCache": false
+        },
+        {
+          "waybillId": "wb-0008",
+          "code": "YD20260901008",
+          "toCity": "海陵",
+          "zoneName": "同城",
+          "billableKg": 5.5,
+          "amountYuan": 16.1,
+          "fromCache": false
+        }
+      ],
+      "amountYuan": 269.3915,
+      "discountPermille": 950
+    }
+  ]
+}
