@@ -2,16 +2,18 @@ const { badRequest, notFound } = require('./errors');
 const { load, save, nextId } = require('./store');
 const pricing = require('./pricing');
 const zones = require('./zones');
+const bills = require('./bills');
 const { findCustomer } = require('./customers');
 
 const SERVICES = ['保价', '签收', '上门'];
 
-function decorate(waybill, data) {
+function decorate(waybill, data, driftById) {
   const customer = findCustomer(data, waybill.customerId);
   const zone = zones.zoneOfCity(data, waybill.toCity);
   const index = zones.cityIndex(data);
   const known = index.has(zones.cleanCity(waybill.toCity));
   const bill = data.bills.find((item) => item.id === waybill.billId) || null;
+  const drift = driftById && driftById[waybill.id] ? driftById[waybill.id] : null;
   return Object.assign({}, waybill, {
     customerName: customer ? customer.name : '（客户已删）',
     customerCode: customer ? customer.code : '',
@@ -22,6 +24,14 @@ function decorate(waybill, data) {
     billCode: bill ? bill.code : '',
     billStatus: bill ? bill.status : '',
     locked: Boolean(waybill.billId),
+    billDrift: drift ? {
+      billId: drift.billId,
+      billCode: drift.billCode,
+      diffYuan: drift.diffYuan,
+      diffText: (drift.diffYuan > 0 ? '+' : '') + Number(drift.diffYuan).toFixed(2),
+      direction: drift.direction,
+    } : null,
+    updatedAtText: waybill.updatedAt ? String(waybill.updatedAt).replace('T', ' ').slice(0, 16) : '',
     weightText: Number(waybill.weightKg).toFixed(2) + ' kg',
     volumeText: Number(waybill.volumeM3).toFixed(3) + ' m³',
     createdAtText: String(waybill.createdAt || '').replace('T', ' ').slice(0, 16),
@@ -34,7 +44,8 @@ function listWaybills(query) {
   const customerId = String((query && query.customerId) || '').trim();
   const status = String((query && query.status) || '').trim();
   const unzoned = String((query && query.unzoned) || '').trim() === '1';
-  let items = data.waybills.map((waybill) => decorate(waybill, data));
+  const driftById = bills.driftIndex(data);
+  let items = data.waybills.map((waybill) => decorate(waybill, data, driftById));
   if (customerId) items = items.filter((item) => item.customerId === customerId);
   if (status) items = items.filter((item) => item.status === status);
   if (unzoned) items = items.filter((item) => !item.zoneKnown);
@@ -48,6 +59,7 @@ function listWaybills(query) {
     total: items.length,
     lockedCount: items.filter((item) => item.locked).length,
     unzonedCount: items.filter((item) => !item.zoneKnown).length,
+    driftedCount: items.filter((item) => item.billDrift).length,
   };
 }
 
@@ -102,7 +114,7 @@ function createWaybill(payload) {
   const waybill = Object.assign({ id: nextId('wb', data.waybills) }, clean, { billId: null, quoteCacheYuan: null });
   data.waybills.push(waybill);
   save(data);
-  return decorate(waybill, load());
+  return decorate(waybill, load(), {});
 }
 
 function updateWaybill(id, payload) {
@@ -114,9 +126,24 @@ function updateWaybill(id, payload) {
     throw badRequest('WAYBILL_CODE_DUPLICATE', '运单号 ' + clean.code + ' 已经存在', { field: 'code' });
   }
   if (!findCustomer(data, clean.customerId)) throw badRequest('WAYBILL_CUSTOMER_NOT_FOUND', '选的客户不存在', { field: 'customerId' });
-  Object.assign(current, clean);
+  const wasOnIssuedBill = Boolean(current.billId && (data.bills.find((bill) => bill.id === current.billId) || {}).status === '已出账');
+  Object.assign(current, clean, { updatedAt: new Date().toISOString() });
   save(data);
-  return decorate(current, load());
+  const reloaded = load();
+  const waybill = findWaybill(reloaded, id) || current;
+  const driftById = bills.driftIndex(reloaded);
+  const decorated = decorate(waybill, reloaded, driftById);
+  // 已出账运单允许更正，但要在响应里直接提示这笔改动在账单上产生了多少差额
+  if (wasOnIssuedBill && decorated.billDrift) {
+    decorated.warning = {
+      code: 'BILL_DRIFT_DETECTED',
+      message: '这条运单已在账单 ' + decorated.billDrift.billCode + ' 里，改动产生差额 ' +
+        decorated.billDrift.diffText + ' 元（' + decorated.billDrift.direction + '），请打开账单查看调整，原账单金额不会被直接改动。',
+      billId: decorated.billDrift.billId,
+      billCode: decorated.billDrift.billCode,
+    };
+  }
+  return decorated;
 }
 
 function removeWaybill(id) {

@@ -16,6 +16,15 @@ function buildSummary() {
   const issued = data.bills.filter((bill) => bill.status === '已出账');
   const voided = data.bills.filter((bill) => bill.status === '已作废');
   const issuedAmount = issued.reduce((sum, bill) => sum + Number(bill.amountYuan || 0), 0);
+  const driftStats = issued.reduce((acc, bill) => {
+    const drift = bills.detectDrift(data, bill);
+    if (drift && drift.hasDrift) {
+      acc.driftedBills += 1;
+      acc.driftedLines += drift.lineCount;
+      acc.adjustmentTotal += drift.adjustmentYuan;
+    }
+    return acc;
+  }, { driftedBills: 0, driftedLines: 0, adjustmentTotal: 0 });
   return {
     zoneCount: data.zones.length,
     customerCount: data.customers.length,
@@ -24,6 +33,9 @@ function buildSummary() {
     issuedCount: issued.length,
     voidedCount: voided.length,
     issuedAmountYuan: pricing.roundFen(issuedAmount),
+    driftedBillCount: driftStats.driftedBills,
+    driftedLineCount: driftStats.driftedLines,
+    driftAdjustmentTotalYuan: pricing.roundFen(driftStats.adjustmentTotal),
     lockedCount: decorated.filter((item) => item.locked).length,
     unzonedCount: unzoned.length,
     unzonedCities: Array.from(new Set(unzoned.map((item) => item.toCity))),

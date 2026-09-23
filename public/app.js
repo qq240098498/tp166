@@ -312,8 +312,19 @@
         '</div>';
     }).join('');
 
-    var body = '<div class="card-grid">' + grid + '</div>' +
-      '<div class="hr"></div>' +
+    var body = '<div class="card-grid">' + grid + '</div>';
+    if (Number(s.driftedBillCount) > 0) {
+      var adj = Number(s.driftAdjustmentTotalYuan) || 0;
+      body += '<div class="panel is-warn overview-alert">' +
+        '<h4 class="panel-title">已出账账单存在出账后改动</h4>' +
+        '<div class="amount-row"><span>有差额的账单</span><b>' + num(s.driftedBillCount) + ' 张 / ' + num(s.driftedLineCount) + ' 条运单</b></div>' +
+        '<div class="amount-row is-total"><span>调整合计（' + (adj >= 0 ? '净少收' : '净多收') + '）</span>' +
+        '<b class="is-warn">' + (adj >= 0 ? '+' : '') + money(adj) + ' 元</b></div>' +
+        '<p class="panel-note">这些运单在出账后被改过，差额已逐单算好并以单独一笔调整列在对应账单上，原账单金额未改动。点开账单即可看到差在哪一条、当时与现在各是多少。</p>' +
+        '<button type="button" class="btn btn-amber" data-action="tab" data-tab="bills">去账单核对</button>' +
+        '</div>';
+    }
+    body += '<div class="hr"></div>' +
       '<p class="foot-note">数据更新时间：' + esc(stampText(s.updatedAt)) + '；金额单位为元，保留两位小数。</p>';
     return paneBlock('概览数字', meta, body);
   }
@@ -419,6 +430,9 @@
         '<div class="card-tags">' +
         '<span class="tag">分区 ' + esc(item.zoneName) + '</span>' +
         '<span class="tag' + (item.locked ? ' tag-lock' : '') + '">' + (item.locked ? ('已入账 ' + esc(item.billCode)) : '未入账') + '</span>' +
+        (item.billDrift
+          ? '<span class="tag tag-warn">账单' + esc(item.billDrift.direction) + ' ' + esc(item.billDrift.diffText) + ' 元</span>'
+          : '') +
         '<span class="tag' + (cached > 0 ? ' tag-amber' : '') + '">上次计费 ' + (cached > 0 ? esc(money(cached)) : '未计费') + '</span>' +
         '</div>' +
         '</article>';
@@ -534,6 +548,15 @@
       '<dt>入账情况</dt><dd class="' + (item.locked ? 'is-amber' : '') + '">' + (item.locked ? ('已入账：' + esc(item.billCode) + '（' + esc(item.billStatus) + '）') : '未入账') + '</dd>' +
       '<dt>上次计费</dt><dd class="' + (cached > 0 ? 'is-amber' : '') + '">' + (cached > 0 ? (esc(money(cached)) + ' 元（' + esc(timeTextOf(item.quoteCachedAt)) + '）') : '未计费') + '</dd>' +
       '</dl>' +
+      (item.billDrift
+        ? '<div class="panel is-warn"><h4 class="panel-title">账单差额提示</h4>' +
+        '<div class="amount-row"><span>所属账单</span><b>' + esc(item.billDrift.billCode) + '</b></div>' +
+        '<div class="amount-row is-total"><span>出账后改动产生的差额（' + esc(item.billDrift.direction) + '）</span>' +
+        '<b class="is-warn">' + esc(item.billDrift.diffText) + ' 元</b></div>' +
+        '<p class="panel-note">这条运单在出账后被动过，差额已在账单上以单独一笔调整体现，原账单金额不变。到「账单」标签打开该账单可看逐单核对。</p>' +
+        '<button type="button" class="btn btn-amber" data-action="goto-bill-drift" data-id="' + attr(item.billDrift.billId) + '">打开对应账单</button>' +
+        '</div>'
+        : '') +
       quoteHtml +
       '<div class="btn-stack">' +
       '<button type="button" class="btn btn-primary" data-action="quote-waybill" data-id="' + attr(item.id) + '">单条计费</button>' +
@@ -597,6 +620,12 @@
       await refreshAll();
       render();
       ok((editingId ? '已保存运单修改：' : '已新增运单：') + saved.code + '（' + saved.customerName + ' · ' + saved.zoneName + '）');
+      if (editingId && saved.warning) {
+        els.notice.hidden = false;
+        els.notice.className = 'notice is-warn';
+        els.noticeText.textContent = saved.warning.message;
+        setStatus('运单改动产生账单差额：' + saved.billDrift.diffText + ' 元（' + saved.billDrift.direction + '）', 'error');
+      }
     } catch (err) {
       fail(err);
     }
@@ -1077,6 +1106,8 @@
       '<div class="stat-row"><span class="stat-name">已出账</span><span class="stat-val">' + num(state.bills.issued) + ' 张</span></div>' +
       '<div class="stat-row"><span class="stat-name">已作废</span><span class="stat-val">' + num(state.bills.voided) + ' 张</span></div>' +
       '<div class="stat-row"><span class="stat-name">已出账金额</span><span class="stat-val">' + money(issuedAmount) + ' 元</span></div>' +
+      '<div class="stat-row"><span class="stat-name' + (Number(state.bills.driftedCount) > 0 ? ' is-warn-name' : '') + '">出账后有改动</span><span class="stat-val' + (Number(state.bills.driftedCount) > 0 ? ' is-warn' : '') + '">' + num(state.bills.driftedCount) + ' 张</span></div>' +
+      '<div class="stat-row"><span class="stat-name">调整合计（净少收）</span><span class="stat-val' + (Number(state.bills.adjustmentTotalYuan) !== 0 ? ' is-warn' : '') + '">' + money(state.bills.adjustmentTotalYuan) + ' 元</span></div>' +
       '</div></div>' +
       '<button type="button" class="btn btn-ghost btn-block" data-action="refresh-bills">刷新账单清单</button>';
     return paneBlock('出账与统计', 'GET /api/bills', body);
@@ -1091,6 +1122,8 @@
     var html = bills.map(function (bill) {
       var selected = bill.id === state.selectedBillId;
       var mismatch = money(bill.amountYuan) !== money(bill.lineSumYuan);
+      var drift = bill.drift;
+      var hasDrift = bill.status === '已出账' && drift && drift.hasDrift;
       return '<article class="card' + (selected ? ' is-selected' : '') + '" data-action="select-bill" data-id="' + attr(bill.id) + '">' +
         '<div class="card-top">' +
         '<span class="card-code">' + esc(bill.code) + '</span>' +
@@ -1103,7 +1136,9 @@
         '<div class="card-metric">明细合计<b>' + esc(bill.lineSumText || money(bill.lineSumYuan)) + ' 元</b></div>' +
         '</div>' +
         '<div class="card-tags">' +
-        '<span class="tag' + (mismatch ? ' tag-warn' : '') + '">' + (mismatch ? '金额与明细合计不一致' : '金额与明细合计一致') + '</span>' +
+        (hasDrift
+          ? '<span class="tag tag-warn">出账后改动 ' + esc(num(drift.lineCount)) + ' 条 · ' + esc(drift.adjustmentDirection) + ' ' + esc(drift.adjustmentText) + ' 元</span>'
+          : '<span class="tag' + (mismatch ? ' tag-warn' : '') + '">' + (mismatch ? '金额与明细合计不一致' : '出账后无改动') + '</span>') +
         '<span class="tag">折扣 ' + esc(discountTextOf(bill.discountPermille)) + '</span>' +
         '</div>' +
         '</article>';
@@ -1121,23 +1156,66 @@
     }
     var lines = bill.lines || [];
     var rows = lines.map(function (line) {
-      return '<tr>' +
-        '<td>' + esc(line.code) + '</td>' +
+      var d = line.drift;
+      return '<tr' + (d ? ' class="row-drift"' : '') + '>' +
+        '<td>' + esc(line.code) + (d ? '<br><span class="mini-warn">出账后改动：' + esc(d.changedFieldsText || '计费数据') + '</span>' : '') + '</td>' +
         '<td>' + esc(line.toCity) + '</td>' +
         '<td>' + esc(line.zoneName || '-') + '</td>' +
-        '<td class="num">' + esc(line.billableText || kg(line.billableKg)) + '</td>' +
-        '<td class="num">' + esc(line.amountText || money(line.amountYuan)) + '</td>' +
+        '<td class="num">' + esc(line.billableText || kg(line.billableKg)) + (d ? '<br><span class="mini-now">现在 ' + esc(d.billableNowText) + '</span>' : '') + '</td>' +
+        '<td class="num">' + esc(line.amountText || money(line.amountYuan)) + (d ? '<br><span class="mini-' + (d.diffYuan >= 0 ? 'warn' : 'ok') + '">差额 ' + esc(d.diffText) + '</span>' : '') + '</td>' +
         '<td>' + (line.fromCache ? '取自上次计费' : '本次计算') + '</td>' +
         '</tr>';
     }).join('');
 
     var table = lines.length
       ? '<div class="table-wrap"><table><thead><tr>' +
-      '<th>运单号</th><th>收件城市</th><th>分区</th><th class="num">计费重量</th><th class="num">金额(元)</th><th>计费来源</th>' +
+      '<th>运单号</th><th>收件城市</th><th>分区</th><th class="num">出账时计费重量</th><th class="num">出账时金额(元)</th><th>计费来源</th>' +
       '</tr></thead><tbody>' + rows + '</tbody>' +
-      '<tfoot><tr class="tfoot-row"><td colspan="4">明细合计</td><td class="num">' + esc(bill.lineSumText || money(bill.lineSumYuan)) + '</td><td>' + esc(num(bill.waybillCount)) + ' 条</td></tr></tfoot>' +
+      '<tfoot><tr class="tfoot-row"><td colspan="4">明细合计（出账时）</td><td class="num">' + esc(bill.lineSumText || money(bill.lineSumYuan)) + '</td><td>' + esc(num(bill.waybillCount)) + ' 条</td></tr></tfoot>' +
       '</table></div>'
       : emptyBlock('这张账单没有明细行', '可以作废后重新出账。');
+
+    var drift = bill.drift;
+    var hasDrift = bill.status === '已出账' && drift && drift.hasDrift;
+    var driftPanel = '';
+    if (bill.status === '已出账') {
+      if (hasDrift) {
+        var driftRows = lines.filter(function (l) { return l.drift; }).map(function (line) {
+          var d = line.drift;
+          return '<tr>' +
+            '<td>' + esc(line.code) + '</td>' +
+            '<td>' + esc(d.changedFieldsText || '计费数据') + '</td>' +
+            '<td class="num">' + esc(d.billableThenText) + '</td>' +
+            '<td class="num">' + esc(d.billableNowText) + '</td>' +
+            '<td class="num">' + esc(d.amountThenText) + '</td>' +
+            '<td class="num">' + esc(d.amountNowText) + '</td>' +
+            '<td class="num ' + (d.diffYuan >= 0 ? 'is-warn' : 'is-ok') + '"><b>' + esc(d.diffText) + '</b></td>' +
+            '<td><span class="tag ' + (d.diffYuan >= 0 ? 'tag-warn' : 'tag-ok') + '">' + esc(d.direction) + '</span></td>' +
+            '</tr>';
+        }).join('');
+        var adjWarn = drift.adjustmentDirection === '少收'
+          ? '出账后运单数据有改动，按现在数据应向客户补收；金额以单独一笔调整体现，不改动原账单。'
+          : '出账后运单数据有改动，按现在数据应退给客户；金额以单独一笔调整体现，不改动原账单。';
+        driftPanel = '<div class="panel is-warn">' +
+          '<h4 class="panel-title">出账后差额调整（核对时间 ' + esc(stampText(drift.checkedAt)) + '）</h4>' +
+          '<div class="amount-row"><span>原账单金额（保持不变）</span><b>' + esc(drift.billedText) + ' 元</b></div>' +
+          '<div class="amount-row"><span>调整（单独一笔 · ' + esc(drift.lineCount) + ' 条运单 · ' + esc(drift.adjustmentDirection) + '）</span>' +
+          '<b class="' + (drift.adjustmentYuan >= 0 ? 'is-warn' : 'is-ok') + '">' + esc(drift.adjustmentText) + ' 元</b></div>' +
+          '<div class="amount-row is-total"><span>按现在数据应收合计</span><b>' + esc(drift.expectedNowText) + ' 元</b></div>' +
+          '<p class="panel-note">' + esc(adjWarn) + '</p></div>' +
+          '<div class="block"><h3 class="block-title">逐单核对（当时数据 vs 现在数据）</h3>' +
+          '<div class="table-wrap"><table><thead><tr>' +
+          '<th>运单号</th><th>改动项</th><th class="num">当时计费重量</th><th class="num">现在计费重量</th>' +
+          '<th class="num">当时应收(元)</th><th class="num">现在应收(元)</th><th class="num">差额</th><th>方向</th>' +
+          '</tr></thead><tbody>' + driftRows + '</tbody>' +
+          '<tfoot><tr class="tfoot-row"><td colspan="6">调整合计（' + esc(drift.adjustmentDirection) + '）</td>' +
+          '<td class="num ' + (drift.adjustmentYuan >= 0 ? 'is-warn' : 'is-ok') + '"><b>' + esc(drift.adjustmentText) + '</b></td><td></td></tr></tfoot>' +
+          '</table></div></div>';
+      } else {
+        driftPanel = '<div class="panel is-ok-soft"><h4 class="panel-title">出账后核对</h4>' +
+          '<p class="panel-note">已按现在的运单数据逐单核对，没有发现出账后的改动，无需调整。</p></div>';
+      }
+    }
 
     var head =
       '<div class="detail-head">' +
@@ -1153,18 +1231,19 @@
       '<dt>作废时刻</dt><dd>' + esc(bill.voidedAt ? timeTextOf(bill.voidedAt) : '—') + '</dd>' +
       '</dl>' +
       '<div class="panel"><h4 class="panel-title">金额核对</h4>' +
-      '<div class="amount-row"><span>账单金额</span><b>' + esc(bill.amountText || money(bill.amountYuan)) + ' 元</b></div>' +
+      '<div class="amount-row"><span>账单金额（出账时已定）</span><b>' + esc(bill.amountText || money(bill.amountYuan)) + ' 元</b></div>' +
       '<div class="amount-row is-total"><span>明细合计</span><b>' + esc(bill.lineSumText || money(bill.lineSumYuan)) + ' 元</b></div>' +
       '</div>' +
-      '<div class="block"><h3 class="block-title">逐条明细</h3>' + table + '</div>' +
+      driftPanel +
+      '<div class="block"><h3 class="block-title">出账时逐条明细</h3>' + table + '</div>' +
       '<div class="btn-stack">' +
       (bill.status === '已出账'
         ? '<button type="button" class="btn btn-danger' + (state.confirm && state.confirm.kind === 'bill' && state.confirm.id === bill.id ? ' is-armed' : '') + '" data-action="void-bill" data-id="' + attr(bill.id) + '">' +
         (state.confirm && state.confirm.kind === 'bill' && state.confirm.id === bill.id ? '确认作废（再点一次）' : '作废这张账单') + '</button>'
         : '<button type="button" class="btn" disabled>账单已作废</button>') +
-      '<button type="button" class="btn btn-ghost" data-action="reload-bill" data-id="' + attr(bill.id) + '">重新读取明细</button>' +
+      '<button type="button" class="btn btn-ghost" data-action="reload-bill" data-id="' + attr(bill.id) + '">重新核对</button>' +
       '</div>' +
-      '<p class="foot-note">作废只是把账单状态改成已作废，运单上的入账标记仍然保留。</p>';
+      '<p class="foot-note">出账后运单再被改动不会动原账单金额，差额以单独一笔调整列在上方；作废只是把账单状态改成已作废。</p>';
 
     return paneBlock('账单详情', bill.id, head);
   }
@@ -1517,6 +1596,14 @@
 
       case 'generate-bill': await generateBill(); break;
       case 'select-bill': await selectBill(id); break;
+      case 'goto-bill-drift':
+        state.tab = 'bills';
+        try {
+          await refreshAll();
+          render();
+          await selectBill(id);
+        } catch (err) { fail(err); }
+        break;
       case 'reload-bill': await loadBillDetail(id); if (state.billDetail) setStatus('已重新读取账单 ' + state.billDetail.code + ' 的明细'); break;
       case 'void-bill':
         if (state.confirm && state.confirm.kind === 'bill' && state.confirm.id === id) {

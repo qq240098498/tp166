@@ -593,3 +593,32 @@ tbody tr:hover td { background: var(--slate-soft); }
   .tabs { height: 42px; }
   .topbar-side { width: 100%; }
 }
+
+/* ---------------- 出账后差额核对（bill drift） ---------------- */
+.notice.is-warn {
+  border-color: var(--danger-line);
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+  color: #7d2f28;
+}
+.panel.is-warn { border-color: var(--danger-line); background: var(--danger-soft); }
+.panel.is-warn .panel-title { color: var(--danger); }
+.panel.is-ok-soft { border-color: var(--brand-line); background: var(--slate-soft); }
+.panel-note { margin: 8px 0 10px; font-size: 12px; color: var(--muted); }
+.amount-row b.is-warn { color: var(--danger); }
+.amount-row b.is-ok { color: #1f8f5f; }
+.overview-alert { margin: 14px 0; }
+.overview-alert .btn { margin-top: 2px; }
+
+.tag.tag-ok { border-color: #bfe3d2; background: #e9f7f0; color: #1f8f5f; }
+.stat-val.is-warn { color: var(--danger); font-weight: 700; }
+.stat-name.is-warn-name { color: var(--danger); }
+
+.row-drift { background: var(--danger-soft); }
+.mini-warn { display: inline-block; margin-top: 2px; font-size: 11px; color: var(--danger); font-weight: 600; }
+.mini-now { display: inline-block; margin-top: 2px; font-size: 11px; color: var(--muted); }
+.mini-now::before { content: '→'; margin-right: 3px; }
+.mini-warn::before { content: '改动项：'; font-weight: 400; }
+.mini-ok { display: inline-block; margin-top: 2px; font-size: 11px; color: #1f8f5f; }
+td.is-warn, .amount-row.is-total b.is-warn { color: var(--danger); }
+td.is-ok { color: #1f8f5f; }
