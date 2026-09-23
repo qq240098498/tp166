@@ -339,6 +339,7 @@ button.stat-row { cursor: pointer; transition: .15s ease; }
 button.stat-row:hover { border-color: var(--brand-line); background: var(--brand-soft); }
 .stat-name { display: flex; align-items: center; gap: 7px; }
 .stat-val { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--brand-deep); }
+.stat-val.is-warn { color: var(--danger); }
 .stat-bar { grid-column: 1 / -1; height: 4px; border-radius: 3px; background: #e6ebf3; overflow: hidden; }
 .stat-bar i { display: block; height: 100%; border-radius: 3px; background: var(--brand); }
 .stat-bar i.st-done { background: var(--amber); }
@@ -582,6 +583,45 @@ tbody tr:hover td { background: var(--slate-soft); }
 .status-dot.is-ok { background: var(--amber); }
 .status-msg { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-count { flex: 0 0 auto; color: var(--brand-dark); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ---------------- 出账后改动核对（调整笔） ---------------- */
+.tag.tag-diff { border-color: var(--amber-line); background: var(--amber-soft); color: var(--amber-dark); font-weight: 600; }
+.tag.tag-more { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+
+.adjust-panel {
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid var(--amber-line);
+  border-left: 4px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+}
+.adjust-panel.is-return { border-color: var(--brand-line); border-left-color: var(--brand); background: var(--brand-soft); }
+.adjust-title { margin: 0 0 8px; font-size: 12.5px; font-weight: 700; color: var(--amber-dark); display: flex; align-items: center; gap: 8px; }
+.adjust-panel.is-return .adjust-title { color: var(--brand-dark); }
+.adjust-title .pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #fff;
+}
+.adjust-panel.is-return .adjust-title .pill { background: var(--brand); }
+.adjust-desc { margin: 0 0 8px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.adjust-table { min-width: 560px; }
+.adjust-panel .table-wrap { overflow-x: auto; }
+.adjust-table td, .adjust-table th { font-size: 12px; }
+.adjust-table .reason-cell { color: var(--muted); line-height: 1.5; }
+.adjust-table .delta-cell { font-weight: 700; white-space: nowrap; }
+.delta-cell.is-more { color: var(--danger); }
+.delta-cell.is-less { color: var(--amber-dark); }
+.delta-cell.is-zero { color: var(--muted); font-weight: 600; }
+
+.adjust-total { margin-top: 8px; }
+.adjust-total .amount-row.is-total b { color: var(--amber-dark); }
+.adjust-total.is-return .amount-row.is-total b { color: var(--brand-dark); }
 
 /* ---------------- 窄屏 ---------------- */
 @media (max-width: 1180px) {

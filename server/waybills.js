@@ -2,6 +2,7 @@ const { badRequest, notFound } = require('./errors');
 const { load, save, nextId } = require('./store');
 const pricing = require('./pricing');
 const zones = require('./zones');
+const bills = require('./bills');
 const { findCustomer } = require('./customers');
 
 const SERVICES = ['保价', '签收', '上门'];
@@ -12,6 +13,7 @@ function decorate(waybill, data) {
   const index = zones.cityIndex(data);
   const known = index.has(zones.cleanCity(waybill.toCity));
   const bill = data.bills.find((item) => item.id === waybill.billId) || null;
+  const billAdjustment = bills.waybillAdjustment(data, waybill);
   return Object.assign({}, waybill, {
     customerName: customer ? customer.name : '（客户已删）',
     customerCode: customer ? customer.code : '',
@@ -22,6 +24,7 @@ function decorate(waybill, data) {
     billCode: bill ? bill.code : '',
     billStatus: bill ? bill.status : '',
     locked: Boolean(waybill.billId),
+    billAdjustment,
     weightText: Number(waybill.weightKg).toFixed(2) + ' kg',
     volumeText: Number(waybill.volumeM3).toFixed(3) + ' m³',
     createdAtText: String(waybill.createdAt || '').replace('T', ' ').slice(0, 16),
@@ -116,7 +119,36 @@ function updateWaybill(id, payload) {
   if (!findCustomer(data, clean.customerId)) throw badRequest('WAYBILL_CUSTOMER_NOT_FOUND', '选的客户不存在', { field: 'customerId' });
   Object.assign(current, clean);
   save(data);
-  return decorate(current, load());
+  const reloaded = load();
+  const saved = findWaybillIn(reloaded, id) || current;
+  const decorated = decorate(saved, reloaded);
+  // 已出账账单里的运单被改动：账单金额不动，差额通过账单上的调整笔体现，这里明确提示保存人
+  let billWarning = null;
+  const adj = bills.waybillAdjustment(reloaded, saved);
+  if (adj) {
+    billWarning = {
+      billId: adj.billId,
+      billCode: adj.billCode,
+      direction: adj.direction,
+      deltaYuan: adj.deltaYuan,
+      amountThenYuan: adj.amountThenYuan,
+      amountNowYuan: adj.amountNowYuan,
+      billableKgThen: adj.billableKgThen,
+      billableKgNow: adj.billableKgNow,
+      unbillable: adj.unbillable,
+      reasons: adj.reasons,
+      message: adj.unbillable
+        ? '运单已保存。它属于已出账账单 ' + adj.billCode + '，但按现在的数据已经算不出价格（收件城市可能已无分区），请到该账单核对出账后改动。'
+        : '运单已保存。它属于已出账账单 ' + adj.billCode + '，账单金额 ' + adj.amountThenYuan.toFixed(2) +
+          ' 元不变，已按现在数据记一笔「' + adj.direction + ' ' + Math.abs(adj.deltaYuan).toFixed(2) + ' 元」的调整（' +
+          adj.amountThenYuan.toFixed(2) + ' 元 → ' + adj.amountNowYuan.toFixed(2) + ' 元），可在账单详情查看。',
+    };
+  }
+  return Object.assign({}, decorated, { billWarning });
+}
+
+function findWaybillIn(data, id) {
+  return data.waybills.find((waybill) => waybill.id === id) || null;
 }
 
 function removeWaybill(id) {

@@ -197,6 +197,14 @@
     clearNotice();
     setStatus(text, 'ok');
   }
+  // 保存成功但需要业务上提醒（例如改动影响了已出账账单）：用琥珀色提示而不是错误红
+  function warn(text) {
+    clearFieldErrors();
+    els.notice.hidden = false;
+    els.notice.className = 'notice is-ok';
+    els.noticeText.textContent = text;
+    setStatus(text, 'ok');
+  }
 
   /* ================= 渲染骨架 ================= */
   function paneBlock(title, meta, body) {
@@ -361,6 +369,10 @@
     }).join('');
   }
 
+  function diffWaybillCount() {
+    return (state.waybills.waybills || []).filter(function (w) { return w.billAdjustment; }).length;
+  }
+
   function renderWaybillsLeft() {
     var f = state.filters;
     var statusOptions = '<option value="">全部状态</option>' + STATUSES.map(function (s) {
@@ -385,6 +397,7 @@
       '<div class="stat-list">' +
       '<div class="stat-row"><span class="stat-name">当前清单</span><span class="stat-val">' + num(state.waybills.total) + ' 条</span></div>' +
       '<div class="stat-row"><span class="stat-name">已入账</span><span class="stat-val">' + num(state.waybills.lockedCount) + ' 条</span></div>' +
+      '<div class="stat-row"><span class="stat-name">出账后有改动</span><span class="stat-val ' + (diffWaybillCount() ? 'is-warn' : '') + '">' + num(diffWaybillCount()) + ' 条</span></div>' +
       '<div class="stat-row"><span class="stat-name">未归属城市</span><span class="stat-val">' + num(state.waybills.unzonedCount) + ' 条</span></div>' +
       '</div></div>' +
       '<button type="button" class="btn btn-amber btn-block" data-action="new-waybill">新增运单</button>' +
@@ -403,6 +416,14 @@
     var html = list.map(function (item) {
       var cached = Number(item.quoteCacheYuan);
       var selected = item.id === state.selectedWaybillId;
+      var adj = item.billAdjustment;
+      var diffTag = adj
+        ? '<span class="tag ' + (adj.unbillable ? 'tag-warn' : (Number(adj.deltaYuan) > 0 ? 'tag-more' : 'tag-diff')) + '">' +
+          (adj.unbillable
+            ? '已入账·改动后算不出价'
+            : '出账后改动·' + adj.direction + ' ' + money(Math.abs(adj.deltaYuan)) + ' 元') +
+          '</span>'
+        : '';
       return '<article class="card' + (selected ? ' is-selected' : '') + '" data-action="select-waybill" data-id="' + attr(item.id) + '">' +
         '<div class="card-top">' +
         '<span class="card-code">' + esc(item.code) + '</span>' +
@@ -419,6 +440,7 @@
         '<div class="card-tags">' +
         '<span class="tag">分区 ' + esc(item.zoneName) + '</span>' +
         '<span class="tag' + (item.locked ? ' tag-lock' : '') + '">' + (item.locked ? ('已入账 ' + esc(item.billCode)) : '未入账') + '</span>' +
+        diffTag +
         '<span class="tag' + (cached > 0 ? ' tag-amber' : '') + '">上次计费 ' + (cached > 0 ? esc(money(cached)) : '未计费') + '</span>' +
         '</div>' +
         '</article>';
@@ -514,6 +536,27 @@
         '</div>';
     }
 
+    var adjHtml = '';
+    if (item.billAdjustment) {
+      var wadj = item.billAdjustment;
+      if (wadj.unbillable) {
+        adjHtml = '<div class="adjust-panel"><h4 class="adjust-title">出账后改动核对</h4>' +
+          '<p class="adjust-desc">这条运单已进账单 <b>' + esc(wadj.billCode) + '</b>，但按现在的数据已经算不出价格（收件城市可能已无分区）。账单金额不变，请打开账单处理。</p>' +
+          '<p class="adjust-desc">' + (wadj.reasons || []).map(esc).join('；') + '</p></div>';
+      } else {
+        var isRet = Number(wadj.deltaYuan) < 0;
+        adjHtml = '<div class="adjust-panel' + (isRet ? ' is-return' : '') + '">' +
+          '<h4 class="adjust-title">出账后改动核对 · 账单 ' + esc(wadj.billCode) + '<span class="pill">' + esc(wadj.direction) + '</span></h4>' +
+          '<div class="amount-row"><span>计费重量（出账当时 → 现在）</span><b>' + esc(Number(wadj.billableKgThen).toFixed(2)) + ' → ' + esc(Number(wadj.billableKgNow).toFixed(2)) + ' kg</b></div>' +
+          '<div class="amount-row"><span>按出账当时数据</span><b>' + esc(money(wadj.amountThenYuan)) + ' 元</b></div>' +
+          '<div class="amount-row"><span>按现在数据</span><b>' + esc(money(wadj.amountNowYuan)) + ' 元</b></div>' +
+          '<div class="amount-row is-total"><span>' + esc(wadj.direction) + '（账单金额不变，差额走账单上的调整笔）</span><b>' +
+          (Number(wadj.deltaYuan) > 0 ? '+' : Number(wadj.deltaYuan) < 0 ? '−' : '') + esc(money(Math.abs(wadj.deltaYuan))) + ' 元</b></div>' +
+          ((wadj.reasons || []).length ? '<p class="adjust-desc">变化项：' + wadj.reasons.map(esc).join('；') + '</p>' : '') +
+          '</div>';
+      }
+    }
+
     var detail =
       '<div class="detail-head">' +
       '<span class="detail-title">' + esc(item.code) + '</span>' +
@@ -534,6 +577,7 @@
       '<dt>入账情况</dt><dd class="' + (item.locked ? 'is-amber' : '') + '">' + (item.locked ? ('已入账：' + esc(item.billCode) + '（' + esc(item.billStatus) + '）') : '未入账') + '</dd>' +
       '<dt>上次计费</dt><dd class="' + (cached > 0 ? 'is-amber' : '') + '">' + (cached > 0 ? (esc(money(cached)) + ' 元（' + esc(timeTextOf(item.quoteCachedAt)) + '）') : '未计费') + '</dd>' +
       '</dl>' +
+      adjHtml +
       quoteHtml +
       '<div class="btn-stack">' +
       '<button type="button" class="btn btn-primary" data-action="quote-waybill" data-id="' + attr(item.id) + '">单条计费</button>' +
@@ -596,7 +640,11 @@
       state.confirm = null;
       await refreshAll();
       render();
-      ok((editingId ? '已保存运单修改：' : '已新增运单：') + saved.code + '（' + saved.customerName + ' · ' + saved.zoneName + '）');
+      if (saved.billWarning && saved.billWarning.message) {
+        warn(saved.billWarning.message);
+      } else {
+        ok((editingId ? '已保存运单修改：' : '已新增运单：') + saved.code + '（' + saved.customerName + ' · ' + saved.zoneName + '）');
+      }
     } catch (err) {
       fail(err);
     }
@@ -1056,6 +1104,10 @@
     var issuedAmount = bills.reduce(function (sum, bill) {
       return bill.status === '已出账' ? sum + Number(bill.amountYuan || 0) : sum;
     }, 0);
+    var diffBillCount = bills.filter(function (b) { return b.adjustment && b.adjustment.hasDiff; }).length;
+    var diffDelta = bills.reduce(function (sum, b) {
+      return (b.adjustment && b.adjustment.hasDiff) ? sum + Number(b.adjustment.deltaYuan || 0) : sum;
+    }, 0);
     var periodOptions = (state.periods || []).map(function (p) {
       return '<option value="' + attr(p) + '"></option>';
     }).join('');
@@ -1076,7 +1128,11 @@
       '<div class="stat-row"><span class="stat-name">账单总数</span><span class="stat-val">' + num(state.bills.total) + ' 张</span></div>' +
       '<div class="stat-row"><span class="stat-name">已出账</span><span class="stat-val">' + num(state.bills.issued) + ' 张</span></div>' +
       '<div class="stat-row"><span class="stat-name">已作废</span><span class="stat-val">' + num(state.bills.voided) + ' 张</span></div>' +
+      '<div class="stat-row"><span class="stat-name">出账后有改动</span><span class="stat-val ' + (diffBillCount ? 'is-warn' : '') + '">' + num(diffBillCount) + ' 张</span></div>' +
       '<div class="stat-row"><span class="stat-name">已出账金额</span><span class="stat-val">' + money(issuedAmount) + ' 元</span></div>' +
+      (diffBillCount
+        ? '<div class="stat-row"><span class="stat-name">调整笔净额</span><span class="stat-val">' + (diffDelta > 0 ? '应补收 ' : diffDelta < 0 ? '应退 ' : '') + money(Math.abs(diffDelta)) + ' 元</span></div>'
+        : '') +
       '</div></div>' +
       '<button type="button" class="btn btn-ghost btn-block" data-action="refresh-bills">刷新账单清单</button>';
     return paneBlock('出账与统计', 'GET /api/bills', body);
@@ -1091,6 +1147,8 @@
     var html = bills.map(function (bill) {
       var selected = bill.id === state.selectedBillId;
       var mismatch = money(bill.amountYuan) !== money(bill.lineSumYuan);
+      var adj = bill.adjustment;
+      var hasDiff = adj && adj.hasDiff;
       return '<article class="card' + (selected ? ' is-selected' : '') + '" data-action="select-bill" data-id="' + attr(bill.id) + '">' +
         '<div class="card-top">' +
         '<span class="card-code">' + esc(bill.code) + '</span>' +
@@ -1104,11 +1162,71 @@
         '</div>' +
         '<div class="card-tags">' +
         '<span class="tag' + (mismatch ? ' tag-warn' : '') + '">' + (mismatch ? '金额与明细合计不一致' : '金额与明细合计一致') + '</span>' +
+        (hasDiff
+          ? '<span class="tag ' + (Number(adj.deltaYuan) > 0 ? 'tag-more' : 'tag-diff') + '">' + esc(bill.adjustmentText) + '</span>'
+          : (bill.status === '已出账' ? '<span class="tag">出账后无改动</span>' : '')) +
         '<span class="tag">折扣 ' + esc(discountTextOf(bill.discountPermille)) + '</span>' +
         '</div>' +
         '</article>';
     }).join('');
     return paneBlock('账单清单', meta, html);
+  }
+
+  function signedMoney(value) {
+    var n = Number(value) || 0;
+    return (n > 0 ? '+' : n < 0 ? '−' : '') + money(Math.abs(n));
+  }
+
+  // 出账后改动核对：单独一笔调整，列出多收/少收、差在哪一条、当时与现在各是多少
+  function adjustmentPanelHtml(bill) {
+    var adj = bill.adjustment;
+    if (!adj || !adj.hasDiff) {
+      return bill.status === '已出账'
+        ? '<div class="panel"><h4 class="panel-title">出账后改动核对</h4>' +
+          '<p class="block-hint" style="margin:0;">明细运单出账后没有能影响金额的改动，账单金额即为应收金额。</p></div>'
+        : '';
+    }
+    var isReturn = Number(adj.deltaYuan) < 0;
+    var rows = adj.lines.map(function (item) {
+      var deltaCls = item.unbillable ? 'is-zero' : (Number(item.deltaYuan) > 0 ? 'is-more' : (Number(item.deltaYuan) < 0 ? 'is-less' : 'is-zero'));
+      var deltaText = item.unbillable ? '算不出价' : signedMoney(item.deltaYuan);
+      var zoneText = (!item.zoneNameThen && !item.zoneNameNow) ? '—'
+        : (item.zoneNameThen === item.zoneNameNow ? esc(item.zoneNameNow || '—')
+          : esc(item.zoneNameThen || '—') + ' → ' + esc(item.zoneNameNow || '—'));
+      return '<tr>' +
+        '<td>' + esc(item.code) + (item.unbillable ? ' <span class="tag tag-warn">算不出价</span>' : '') + '</td>' +
+        '<td>' + zoneText + '</td>' +
+        '<td class="num">' + esc(Number(item.billableKgThen).toFixed(2)) + ' → ' + esc(Number(item.billableKgNow).toFixed(2)) + ' kg</td>' +
+        '<td class="num">' + (item.unbillable ? '—' : esc(money(item.amountThenYuan))) + '</td>' +
+        '<td class="num">' + (item.unbillable ? '—' : esc(money(item.amountNowYuan))) + '</td>' +
+        '<td class="num delta-cell ' + deltaCls + '">' + deltaText + '</td>' +
+        '<td class="reason-cell">' + (item.reasons || []).map(esc).join('<br>') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var table = '<div class="table-wrap"><table class="adjust-table"><thead><tr>' +
+      '<th>运单号</th><th>分区</th><th class="num">计费重量(当时→现在)</th><th class="num">按当时(元)</th><th class="num">按现在(元)</th><th class="num">差额</th><th>差在哪</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody>' +
+      '<tfoot><tr class="tfoot-row"><td colspan="3">受影响运单合计</td>' +
+      '<td class="num">' + esc(money(adj.thenSumYuan)) + '</td>' +
+      '<td class="num">' + esc(money(adj.nowSumYuan)) + '</td>' +
+      '<td class="num">' + signedMoney(adj.deltaYuan) + '</td><td></td></tr></tfoot>' +
+      '</table></div>';
+
+    var directionText = Number(adj.deltaYuan) === 0
+      ? '金额无净差'
+      : (isReturn ? '账单多收了，应退 ' : '账单少收了，应补收 ') + money(Math.abs(adj.deltaYuan)) + ' 元';
+
+    return '<div class="adjust-panel' + (isReturn ? ' is-return' : '') + '">' +
+      '<h4 class="adjust-title">出账后改动核对（单独一笔调整，不改原账单金额）<span class="pill">' + esc(adj.direction) + '</span></h4>' +
+      '<p class="adjust-desc">出账后有 ' + num(adj.affectedCount) + ' 条运单的计费相关数据发生变化。' + esc(directionText) +
+      '；下表按「出账当时数据」与「现在数据」用同一单条计费口径各算一次。</p>' +
+      table +
+      '<div class="adjust-total' + (isReturn ? ' is-return' : '') + '">' +
+      '<div class="amount-row"><span>原账单金额（保持不变）</span><b>' + esc(money(bill.amountYuan)) + ' 元</b></div>' +
+      '<div class="amount-row"><span>调整笔：' + esc(adj.direction) + '</span><b>' + signedMoney(adj.deltaYuan) + ' 元</b></div>' +
+      '<div class="amount-row is-total"><span>按现在数据应收合计</span><b>' + esc(money(bill.payableYuan)) + ' 元</b></div>' +
+      '</div></div>';
   }
 
   function renderBillsRight() {
@@ -1154,8 +1272,13 @@
       '</dl>' +
       '<div class="panel"><h4 class="panel-title">金额核对</h4>' +
       '<div class="amount-row"><span>账单金额</span><b>' + esc(bill.amountText || money(bill.amountYuan)) + ' 元</b></div>' +
-      '<div class="amount-row is-total"><span>明细合计</span><b>' + esc(bill.lineSumText || money(bill.lineSumYuan)) + ' 元</b></div>' +
+      (bill.adjustment && bill.adjustment.hasDiff
+        ? '<div class="amount-row"><span>出账后改动调整（' + esc(bill.adjustment.direction) + '）</span><b>' + signedMoney(bill.adjustment.deltaYuan) + ' 元</b></div>'
+        : '') +
+      '<div class="amount-row is-total"><span>' + ((bill.adjustment && bill.adjustment.hasDiff) ? '按现在数据应收合计' : '明细合计') + '</span><b>' +
+      esc((bill.adjustment && bill.adjustment.hasDiff) ? money(bill.payableYuan) : (bill.lineSumText || money(bill.lineSumYuan))) + ' 元</b></div>' +
       '</div>' +
+      adjustmentPanelHtml(bill) +
       '<div class="block"><h3 class="block-title">逐条明细</h3>' + table + '</div>' +
       '<div class="btn-stack">' +
       (bill.status === '已出账'
